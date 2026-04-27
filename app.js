@@ -1,7 +1,7 @@
 // === CONFIGURATION SUPABASE ===
 // Remplacer par vos clés Supabase depuis Paramètres > API
 const SUPABASE_URL = 'https://ymrrkhaspzpbqblzsuwm.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InltcnJraGFzcHpwYnFibHpzdXdtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcyMzI3MTAsImV4cCI6MjA5MjgwODcxMH0.WJLAklXP7MvEov7a4BK6PkyC97opDKASH4WxoyA-BcY';
+const SUPABASE_ANON_KEY = 'sb_publishable_qXp0HcrsEviga4xYmK2iaA_kF1l-OlD';
 
 const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
