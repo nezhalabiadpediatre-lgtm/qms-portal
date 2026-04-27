@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QMS Portal - Événements Qualité</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+</head>
+<body>
+
+    <div id="auth-section" class="glass-container">
+        <div class="auth-box">
+            <h2><i class="ri-shield-check-line"></i> QMS Portal</h2>
+            <p>Authentification requise</p>
+            <input type="email" id="email" placeholder="Adresse e-mail" required>
+            <input type="password" id="password" placeholder="Mot de passe" required>
+            <button onclick="login()" class="btn-primary">Se connecter</button>
+            <p id="auth-error" class="error-msg"></p>
+        </div>
+    </div>
+
+    <div id="app-section" class="hidden">
+        <nav class="sidebar glass-panel">
+            <div class="logo">QMS<span>Pilot</span></div>
+            <ul class="nav-links">
+                <li onclick="showView('dashboard')"><i class="ri-dashboard-line"></i> Tableau de bord</li>
+                <li onclick="showView('events')"><i class="ri-file-list-3-line"></i> Événements</li>
+                <li onclick="showView('departments')"><i class="ri-building-line"></i> Départements</li>
+            </ul>
+            <div class="user-info">
+                <span id="user-email"></span>
+                <button onclick="logout()" class="btn-danger"><i class="ri-logout-box-line"></i> Quitter</button>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <section id="view-dashboard" class="view active">
+                <header>
+                    <h1>Tableau de bord Global</h1>
+                </header>
+                <div class="kpi-grid">
+                    <div class="kpi-card glass-panel">
+                        <h3>Total Événements</h3>
+                        <div class="kpi-value" id="kpi-total">0</div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <h3>En cours</h3>
+                        <div class="kpi-value text-warning" id="kpi-pending">0</div>
+                    </div>
+                    <div class="kpi-card glass-panel">
+                        <h3>Clôturés</h3>
+                        <div class="kpi-value text-success" id="kpi-closed">0</div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="view-events" class="view hidden">
+                <header class="flex-between">
+                    <h1>Gestion des Événements Qualité</h1>
+                    <div>
+                        <button onclick="exportToExcel()" class="btn-secondary"><i class="ri-file-excel-line"></i> Exporter</button>
+                        <button onclick="toggleModal('event-modal')" class="btn-primary"><i class="ri-add-line"></i> Nouvel Événement</button>
+                    </div>
+                </header>
+                
+                <div class="filters glass-panel">
+                    <select id="filter-type" onchange="loadEvents()">
+                        <option value="">Tous les types</option>
+                        <option value="Déviation">Déviation</option>
+                        <option value="CAPA">CAPA</option>
+                        <option value="Réclamation">Réclamation</option>
+                    </select>
+                    <select id="filter-status" onchange="loadEvents()">
+                        <option value="">Tous les statuts</option>
+                        <option value="En cours">En cours</option>
+                        <option value="Réalisé">Réalisé</option>
+                    </select>
+                </div>
+
+                <div class="table-container glass-panel">
+                    <table id="events-table">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Type</th>
+                                <th>Département</th>
+                                <th>Date</th>
+                                <th>Responsable</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="events-list">
+                            </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section id="view-departments" class="view hidden">
+                <header class="flex-between">
+                    <h1>Départements</h1>
+                    <button onclick="toggleModal('dept-modal')" class="btn-primary"><i class="ri-add-line"></i> Nouveau</button>
+                </header>
+                <div class="grid-list" id="dept-list">
+                    </div>
+            </section>
+        </main>
+    </div>
+
+    <div id="event-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="toggleModal('event-modal')">&times;</span>
+            <h2>Saisir un événement qualité</h2>
+            <form id="event-form" onsubmit="saveEvent(event)">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Type d'événement *</label>
+                        <select id="ev-type" required>
+                            <option value="Déviation">Déviation</option>
+                            <option value="CAPA">CAPA</option>
+                            <option value="Réclamation">Réclamation</option>
+                            <option value="Action CC">Action CC</option>
+                            <option value="Action maîtrise de risque">Action maîtrise de risque</option>
+                            <option value="Remarque d’amélioration">Remarque d’amélioration</option>
+                            <option value="Autre">Autre</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Département *</label>
+                        <select id="ev-dept" required></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date de l'événement *</label>
+                        <input type="date" id="ev-date" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="ev-status">
+                            <option value="En cours">En cours</option>
+                            <option value="Réalisé">Réalisé</option>
+                        </select>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Description *</label>
+                        <textarea id="ev-desc" rows="3" required></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <label>Action immédiate / planifiée</label>
+                        <textarea id="ev-action" rows="2"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Responsable de l'action</label>
+                        <input type="text" id="ev-resp">
+                    </div>
+                    <div class="form-group">
+                        <label>Date prévue</label>
+                        <input type="date" id="ev-planned">
+                    </div>
+                    <div class="form-group">
+                        <label>Date de réalisation</label>
+                        <input type="date" id="ev-completion">
+                    </div>
+                    <div class="form-group">
+                        <label>Cause racine (Root cause)</label>
+                        <input type="text" id="ev-root">
+                    </div>
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="ev-recurrence">
+                        <label for="ev-recurrence">Récurrence constatée</label>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary w-full mt-4">Enregistrer</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="dept-modal" class="modal hidden">
+        <div class="modal-content glass-panel">
+            <span class="close" onclick="toggleModal('dept-modal')">&times;</span>
+            <h2>Ajouter un département</h2>
+            <form id="dept-form" onsubmit="saveDepartment(event)">
+                <div class="form-group">
+                    <label>Nom du département</label>
+                    <input type="text" id="dept-name" required>
+                </div>
+                <button type="submit" class="btn-primary w-full mt-4">Créer</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
